@@ -13,6 +13,8 @@ nltk.download('stopwords')
 nltk.download('wordnet')
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
+from matplotlib import pyplot as plt
+import json
 
 if torch.cuda.is_available():
   device = torch.device("cuda")
@@ -98,19 +100,23 @@ class TextPreprocessor:
           text = self.lemmatize_text(text)
         return text
     
-def load_data(data_path):
+def load_data(data_path,rmStopWords = True, lowercase = True, rmPuncs = False,
+                                                rmSpecialChars = False, rmLinks = True, rmHtmlTags = True,
+                                                rmExtraSpaces = True, rmNumbers = False, lemmatize = True):
         # Load the IMDb dataset from the data_path
         # The dataset is stored in a text file where each line contains a review and its label
         logging.info("Loading dataset")
         df = pd.read_csv(data_path, encoding='utf-8',delimiter=",")
-        text_preprocesser = TextPreprocessor(rmStopWords = True, lowercase = True, rmPuncs = False,
-                                                rmSpecialChars = False, rmLinks = True, rmHtmlTags = True,
-                                                rmExtraSpaces = True, rmNumbers = False, lemmatize = True)
+        text_preprocesser = TextPreprocessor(rmStopWords = rmStopWords, lowercase = lowercase, rmPuncs = rmPuncs,
+                                                rmSpecialChars = rmSpecialChars, rmLinks = rmLinks, rmHtmlTags = rmHtmlTags,
+                                                rmExtraSpaces = rmExtraSpaces, rmNumbers = rmNumbers, lemmatize = lemmatize)
         logging.info("Preprocessing Text...")
         sentences = df.review.progress_apply(lambda x: text_preprocesser.preprocess_text(x)).tolist()
         labels = df.sentiment.apply(lambda x: 1 if x == "positive" else 0).tolist()
         return sentences, labels
 
+def count_parameters(model):
+   return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 class IMDBDataset(Dataset):
     def __init__(self, data, max_length=250):
@@ -157,4 +163,17 @@ class IMDBDataset(Dataset):
         ids.append(item['input_ids'])
         attention_masks.append(item['attention_mask'])
         labels.append(item['label'])
-      return {'ids': ids.to(device), 'attention_masks':attention_masks.to(device),'labels': labels.to(device)}
+      return {'ids': torch.stack(ids).to(device), 
+              'attention_masks':torch.stack(attention_masks).to(device),
+              'labels': torch.stack(labels).to(device)}
+
+
+def plot_training_history(history_path):
+  with open(history_path, "r") as file:
+    history = json.load(file)
+  plt.plot(history["val_acc"])
+  
+   
+   
+
+

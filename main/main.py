@@ -5,10 +5,12 @@ import torch.nn.functional as F
 import torchtext
 import tqdm
 import utils
+import torch
 from sklearn.model_selection import train_test_split
 from sentiment_model import Transformer_Model
 from transformers import BertTokenizer
-
+import logging
+logging.basicConfig(level=logging.DEBUG)
 if torch.cuda.is_available():
   device = torch.device("cuda")
 else:
@@ -20,9 +22,9 @@ def main():
   test_dataset = utils.IMDBDataset(data = (test_data, test_labels), max_length=250)
 
   sentiment_model = Transformer_Model(d_model = 256, output_dim = 1, vocab_size = BertTokenizer.from_pretrained('bert-base-uncased').vocab_size,
-                                      d_ff=1024,n_head=4, d_qkv=32,dropout=0.1).to(device)
+                                      d_ff=1024,n_head=4, d_qkv=32,dropout=0.1, n_layers = 4).to(device)
   
-
+  print("Number of trainable parameters:", utils.count_parameters(sentiment_model))
 
   sentiment_model.train_model(train_dataset = train_dataset, val_dataset = test_dataset, num_epochs = 2, batch_size = 16, model_file = "./sentiment_model.pt",
           learning_rate=8e-4)

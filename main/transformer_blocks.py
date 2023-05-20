@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pdb
+import math
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model=256, n_head=4, d_qkv=32, dropout=0.1, **kwargs):
